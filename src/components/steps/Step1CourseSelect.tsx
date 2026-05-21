@@ -19,15 +19,63 @@ import styles from './Step1CourseSelect.css.module.css'; // CSS 모듈 사용
 export const Step1CourseSelect: React.FC = () => {
   // 1) React Hook Form의 Context로부터 폼 제어 및 유효성 에러 상태를 수신합니다.
   const {
-    register,
     watch,
     setValue,
+    getValues, // getValues를 가져와 작성중인 폼 값을 체크
     formState: { errors }
   } = useFormContext<EnrollmentFormData>();
 
   // 2) 폼의 상태 중 '선택된 강의 ID'와 '신청 유형'을 실시간 감시(Watch)합니다.
   const selectedCourseId = watch('courseId');
   const enrollmentType = watch('enrollmentType');
+
+  // 작성 중인 유의미한 데이터가 있는지 확인하여 불필요한 알럿 발생을 줄이는 헬퍼 함수
+  const hasFilledData = () => {
+    const values = getValues();
+    if (values.name?.trim() || values.email?.trim() || values.phone?.trim() || values.motivation?.trim()) {
+      return true;
+    }
+    if (values.group) {
+      const g = values.group;
+      if (g.organizationName?.trim() || g.contactPerson?.trim() || g.contactPhone?.trim()) {
+        return true;
+      }
+      if (g.participants && g.participants.some(p => p.name?.trim() || p.email?.trim())) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // 신청 유형 변경 전 확인창을 띄우는 함수 (높은 숙련도 요구사항)
+  const handleTypeChange = (targetType: 'personal' | 'group') => {
+    if (enrollmentType === targetType) return;
+
+    if (hasFilledData()) {
+      const confirmChange = window.confirm(
+        '신청 유형을 변경하면 이미 작성하신 정보가 모두 초기화됩니다. 변경하시겠습니까?'
+      );
+      if (!confirmChange) {
+        return;
+      }
+    }
+
+    setValue('enrollmentType', targetType);
+    if (targetType === 'personal') {
+      setValue('group', undefined);
+    } else {
+      setValue('group', {
+        organizationName: '',
+        contactPerson: '',
+        contactPhone: '',
+        headCount: 2,
+        participants: [
+          { name: '', email: '' },
+          { name: '', email: '' }
+        ]
+      });
+    }
+  };
 
   // 3) 카테고리 탭 상태 필터 ('all' | 'development' | 'design' | 'marketing' | 'business')
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -214,11 +262,8 @@ export const Step1CourseSelect: React.FC = () => {
               type="radio"
               value="personal"
               className={styles.hiddenRadio}
-              {...register('enrollmentType')}
-              onChange={() => {
-                setValue('enrollmentType', 'personal');
-                setValue('group', undefined); // 개인으로 선택 시 단체 정보 필드 초기화
-              }}
+              checked={enrollmentType === 'personal'}
+              onChange={() => handleTypeChange('personal')}
             />
             <User size={24} className={styles.radioIcon} />
             <div className={styles.radioInfo}>
@@ -237,21 +282,8 @@ export const Step1CourseSelect: React.FC = () => {
               type="radio"
               value="group"
               className={styles.hiddenRadio}
-              {...register('enrollmentType')}
-              onChange={() => {
-                setValue('enrollmentType', 'group');
-                // 단체 선택 시 초기값 세팅 (기본 인원 2명)
-                setValue('group', {
-                  organizationName: '',
-                  contactPerson: '',
-                  contactPhone: '',
-                  headCount: 2,
-                  participants: [
-                    { name: '', email: '' },
-                    { name: '', email: '' }
-                  ]
-                });
-              }}
+              checked={enrollmentType === 'group'}
+              onChange={() => handleTypeChange('group')}
             />
             <Users size={24} className={styles.radioIcon} />
             <div className={styles.radioInfo}>

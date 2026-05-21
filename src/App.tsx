@@ -50,12 +50,56 @@ function App() {
 
   const { trigger, getValues, handleSubmit, reset } = methods;
 
+  // 유효성 에러 필드로 오토포커스 및 스무스 스크롤링 이동 처리 함수 (높은 숙련도 요구사항)
+  const focusAndScrollToError = () => {
+    setTimeout(() => {
+      const { errors } = methods.formState;
+      
+      // 중첩된 에러 객체에서 첫 번째 에러가 발생한 필드 경로 수집
+      const getFirstErrorKey = (obj: any, path = ''): string | null => {
+        if (!obj) return null;
+        if (obj.message) return path;
+        
+        for (const key of Object.keys(obj)) {
+          // 배열 index(숫자)와 일반 키를 안전하게 name 경로로 병합
+          const currentPath = path 
+            ? (isNaN(Number(key)) ? `${path}.${key}` : `${path}.${key}`) 
+            : key;
+          const result = getFirstErrorKey(obj[key], currentPath);
+          if (result) return result;
+        }
+        return null;
+      };
+
+      const firstErrorPath = getFirstErrorKey(errors);
+      if (!firstErrorPath) return;
+
+      // react-hook-form의 name 매핑 요소 쿼리
+      const errorElement = document.querySelector(`[name="${firstErrorPath}"]`) as HTMLElement;
+      
+      if (errorElement) {
+        errorElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+        
+        setTimeout(() => {
+          errorElement.focus();
+        }, 300); // 스크롤 마친 후 포커스 진입
+      }
+    }, 0);
+  };
+
   // 2) 단계별 다음 버튼 클릭 시 유효성 검사 수행
   const handleNextStep = async () => {
     if (step === 1) {
       // 1단계: 강좌와 신청 유형 필수 선택 체크
       const isValid = await trigger(['courseId', 'enrollmentType']);
-      if (isValid) setStep(2);
+      if (isValid) {
+        setStep(2);
+      } else {
+        focusAndScrollToError();
+      }
     } else if (step === 2) {
       // 2단계: 공통 인적 사항 검사 대상 설정
       const fieldsToValidate: any[] = ['name', 'email', 'phone', 'motivation'];
@@ -80,7 +124,11 @@ function App() {
       }
 
       const isValid = await trigger(fieldsToValidate);
-      if (isValid) setStep(3);
+      if (isValid) {
+        setStep(3);
+      } else {
+        focusAndScrollToError();
+      }
     }
   };
 
@@ -207,7 +255,7 @@ function App() {
           <StepIndicator currentStep={step} totalSteps={3} />
 
           <FormProvider {...methods}>
-            <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            <form onSubmit={handleSubmit(onSubmit, focusAndScrollToError)} noValidate>
               
               <div style={{ minHeight: '320px', marginBottom: '32px' }}>
                 {step === 1 && <Step1CourseSelect />}

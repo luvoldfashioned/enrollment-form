@@ -9,7 +9,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: false,
+      retry: import.meta.env.DEV ? 1 : false, // 개발 모드에서 MSW 로딩 지연으로 인한 첫 요청 실패 시 1회 재시도 허용
     },
   },
 });
