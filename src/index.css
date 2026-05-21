@@ -40,6 +40,18 @@
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   color-scheme: dark;
+
+  /* 컴포넌트 범용 변수 매핑 */
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-error: var(--error);
+  --border-color: var(--card-border);
+  --bg-card: rgba(255, 255, 255, 0.015);
+  --bg-modifier-accent: rgba(255, 255, 255, 0.08);
+  --color-muted: var(--text-muted);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
 }
 
 /* 기본 리셋 & 레이아웃 */
@@ -249,4 +261,139 @@ h1 {
   h1 {
     font-size: 24px;
   }
+}
+
+/* --------------------------------------------------
+   신규 수강 신청 완료 화면 & 에러 배너 스타일
+   -------------------------------------------------- */
+
+.success-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem 0;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.success-icon-wrapper {
+  width: 90px;
+  height: 90px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.15);
+}
+
+.success-icon {
+  color: var(--success);
+  filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.3));
+}
+
+.success-container h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.success-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 400px;
+  line-height: 1.5;
+  margin-bottom: 2rem;
+}
+
+/* 완료 요약 카드 */
+.success-details-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  backdrop-filter: blur(8px);
+}
+
+.success-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.success-row:last-child {
+  border-bottom: none;
+}
+
+.success-label {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.success-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.success-value-highlight {
+  font-size: 14px;
+  color: var(--primary-hover);
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.success-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+}
+
+.badge-conf {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.badge-pend {
+  background: rgba(234, 179, 8, 0.1);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+/* API 에러 배너 */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  color: var(--error);
+  font-size: 13.5px;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}
+
+/* 로딩 회전 아이콘 애니메이션 */
+.spin-icon {
+  animation: spin-kf 1.2s linear infinite;
+}
+
+@keyframes spin-kf {
+  to { transform: rotate(360deg); }
+}
+
+.form-main-title {
+  margin-top: 10px;
 }

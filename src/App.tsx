@@ -1,108 +1,284 @@
 import { useState } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { enrollmentFormSchema } from './types/form';
+import type { EnrollmentFormData } from './types/form';
+import { StepIndicator } from './components/StepIndicator';
+import { Step1CourseSelect } from './components/steps/Step1CourseSelect';
+import { Step2StudentInfo } from './components/steps/Step2StudentInfo';
+import { Step3Confirm } from './components/steps/Step3Confirm';
 
+interface SubmitSuccessResult {
+  enrollmentId: string;
+  status: 'confirmed' | 'pending';
+  enrolledAt: string;
+}
+
+/**
+ * 📘 [주니어 개발자 해설]
+ * 최상위 App 컴포넌트입니다.
+ * 
+ * 1. 폼의 활성화 단계를 1~3단계로 관리합니다.
+ * 2. 1단계(강의 선택), 2단계(정보 입력)에서 다음 단계 버튼을 클릭할 때,
+ *    각 단계에 종속된 필드들만 선택하여 `trigger()` 검사를 타이트하게 돌려줍니다.
+ * 3. 3단계에서 최종 승인을 누르면 폼 데이터를 백엔드 API 규격에 맞춰 객체를 재구성(Mapping)하여 
+ *    `/api/enrollments`로 비동기 POST 전송을 보냅니다.
+ * 4. 전송 과정 중 로딩 피드백, API 제출 성공 시 성공 상세화면(신청번호 표시), 실패 시 에러 대화상자 노출을 제공합니다.
+ */
 function App() {
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitResult, setSubmitResult] = useState<SubmitSuccessResult | null>(null);
 
-  const nextStep = () => setStep((prev) => Math.min(prev + 1, 4));
+  // 1) 폼 컨트롤러 및 초기값 선언
+  const methods = useForm<EnrollmentFormData>({
+    resolver: zodResolver(enrollmentFormSchema),
+    mode: 'onChange',
+    defaultValues: {
+      courseId: '',
+      enrollmentType: 'personal',
+      name: '',
+      email: '',
+      phone: '',
+      motivation: '',
+      agreedToTerms: false
+    }
+  });
+
+  const { trigger, getValues, handleSubmit, reset } = methods;
+
+  // 2) 단계별 다음 버튼 클릭 시 유효성 검사 수행
+  const handleNextStep = async () => {
+    if (step === 1) {
+      // 1단계: 강좌와 신청 유형 필수 선택 체크
+      const isValid = await trigger(['courseId', 'enrollmentType']);
+      if (isValid) setStep(2);
+    } else if (step === 2) {
+      // 2단계: 공통 인적 사항 검사 대상 설정
+      const fieldsToValidate: any[] = ['name', 'email', 'phone', 'motivation'];
+
+      // 단체 신청일 경우에는 단체 추가 필드들 및 동적 참가자 명단까지 전부 검사
+      const type = getValues('enrollmentType');
+      if (type === 'group') {
+        fieldsToValidate.push(
+          'group.organizationName',
+          'group.contactPerson',
+          'group.contactPhone',
+          'group.headCount'
+        );
+
+        const participants = getValues('group.participants') || [];
+        participants.forEach((_, idx) => {
+          fieldsToValidate.push(
+            `group.participants.${idx}.name`,
+            `group.participants.${idx}.email`
+          );
+        });
+      }
+
+      const isValid = await trigger(fieldsToValidate);
+      if (isValid) setStep(3);
+    }
+  };
+
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+
+  // 3) 최종 3단계 확인 후 폼 제출
+  const onSubmit = async (data: EnrollmentFormData) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    // API 스펙(handlers.ts)에 맞춰 데이터 형태 가공 (applicant 오브젝트 구조 맵핑)
+    const apiPayload = {
+      courseId: data.courseId,
+      type: data.enrollmentType,
+      applicant: {
+        name: data.name,
+        email: data.email,
+        phone: data.phone
+      },
+      motivation: data.motivation,
+      agreedToTerms: data.agreedToTerms,
+      group: data.enrollmentType === 'group' ? {
+        organizationName: data.group?.organizationName,
+        contactPerson: data.group?.contactPerson,
+        contactPhone: data.group?.contactPhone,
+        headCount: Number(data.group?.headCount) || 2,
+        participants: data.group?.participants
+      } : undefined
+    };
+
+    try {
+      const response = await fetch('/api/enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiPayload)
+      });
+
+      const resultData = await response.json();
+
+      if (!response.ok) {
+        // 서버에서 전달한 API 에러 메시지가 있을 시 이를 예외 처리로 던짐
+        throw new Error(resultData.message || '수강 신청 제출에 실패했습니다.');
+      }
+
+      // 신청 성공 상태 기록
+      setSubmitResult(resultData);
+    } catch (err: any) {
+      setSubmitError(err.message || '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 신청 완료 화면에서 새로 작성하기(초기화) 버튼 처리
+  const handleRestart = () => {
+    reset({
+      courseId: '',
+      enrollmentType: 'personal',
+      name: '',
+      email: '',
+      phone: '',
+      motivation: '',
+      agreedToTerms: false
+    });
+    setSubmitResult(null);
+    setSubmitError(null);
+    setStep(1);
+  };
 
   return (
     <main className="glass-card">
-      {/* 카드 상단 헤더 */}
-      <h1>수강 신청 시스템</h1>
-      <p className="subtitle">다단계 폼을 통해 빠르고 간편하게 수강을 신청해 보세요.</p>
+      <h1 className="form-main-title">수강 신청 시스템</h1>
+      <p className="subtitle">단계별 폼을 작성해 편리하게 온라인 수강 신청을 마쳐보세요.</p>
 
-      {/* 스텝 표시기 플레이스홀더 */}
-      <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-        <div style={{ fontSize: '14px', color: 'var(--primary)', fontWeight: '600' }}>
-          STEP {step} / 4
-        </div>
-        <div style={{ 
-          height: '6px', 
-          background: 'rgba(255,255,255,0.05)', 
-          borderRadius: '3px', 
-          marginTop: '12px',
-          overflow: 'hidden'
-        }}>
-          <div style={{ 
-            height: '100%', 
-            width: `${(step / 4) * 100}%`, 
-            background: 'linear-gradient(90deg, var(--primary), var(--secondary))',
-            transition: 'width 0.4s ease'
-          }}></div>
-        </div>
-      </div>
-
-      {/* 스텝별 폼 예시 콘텐츠 */}
-      <div style={{ minHeight: '260px', marginBottom: '32px' }}>
-        {step === 1 && (
-          <div className="step-content">
-            <h2 style={{ fontSize: '20px', marginBottom: '20px', color: 'var(--text-primary)' }}>1단계: 기본 정보 입력</h2>
-            
-            <div className="form-group">
-              <label className="form-label">이름 <span className="required">*</span></label>
-              <input type="text" className="form-input" placeholder="홍길동" />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">이메일 <span className="required">*</span></label>
-              <input type="email" className="form-input" placeholder="example@liveklass.com" />
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="step-content">
-            <h2 style={{ fontSize: '20px', marginBottom: '20px', color: 'var(--text-primary)' }}>2단계: 수강 과목 선택</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>과목 정보 로딩 및 분류 선택이 들어갈 예정입니다.</p>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="step-content">
-            <h2 style={{ fontSize: '20px', marginBottom: '20px', color: 'var(--text-primary)' }}>3단계: 추가 옵션 및 약관 동의</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>알림 설정 및 할인 대상 증빙 업로드가 들어갈 예정입니다.</p>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="step-content">
-            <h2 style={{ fontSize: '20px', marginBottom: '20px', color: 'var(--text-primary)' }}>4단계: 신청 정보 최종 확인</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>입력한 내용을 한눈에 검토하고 최종 신청을 완료합니다.</p>
-          </div>
-        )}
-      </div>
-
-      {/* 하단 네비게이션 버튼 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-        <button 
-          type="button" 
-          className="btn btn-secondary" 
-          onClick={prevStep}
-          disabled={step === 1}
+      {/* API 성공 완료 화면 렌더링 */}
+      {submitResult ? (
+        <motion.div 
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="success-container"
         >
-          이전 단계
-        </button>
-        
-        {step < 4 ? (
+          <div className="success-icon-wrapper">
+            <CheckCircle2 size={56} className="success-icon" />
+          </div>
+          <h2>수강 신청서 접수 완료!</h2>
+          <p className="success-desc">
+            {submitResult.status === 'confirmed' 
+              ? '수강 신청이 정상적으로 즉시 승인(확정)되었습니다.' 
+              : '단체 신청 접수가 완료되었습니다. 담당자 승인 후 메일로 안내해 드립니다.'}
+          </p>
+
+          <div className="success-details-card">
+            <div className="success-row">
+              <span className="success-label">접수 신청번호</span>
+              <span className="success-value-highlight">{submitResult.enrollmentId}</span>
+            </div>
+            <div className="success-row">
+              <span className="success-label">접수 일시</span>
+              <span className="success-value">
+                {new Date(submitResult.enrolledAt).toLocaleString()}
+              </span>
+            </div>
+            <div className="success-row">
+              <span className="success-label">신청 승인상태</span>
+              <span className={`success-badge ${submitResult.status === 'confirmed' ? 'badge-conf' : 'badge-pend'}`}>
+                {submitResult.status === 'confirmed' ? '즉시 확정' : '승인 대기 중'}
+              </span>
+            </div>
+          </div>
+
           <button 
             type="button" 
-            className="btn btn-primary" 
-            onClick={nextStep}
+            className="btn btn-primary"
+            onClick={handleRestart}
+            style={{ width: '100%', marginTop: '1.5rem' }}
           >
-            다음 단계
+            새로운 신청서 작성하기
           </button>
-        ) : (
-          <button 
-            type="button" 
-            className="btn btn-primary" 
-            onClick={() => alert('신청 제출 완료!')}
-            style={{ background: 'var(--success)', boxShadow: '0 4px 14px 0 rgba(34, 197, 94, 0.4)' }}
-          >
-            신청서 제출
-          </button>
-        )}
-      </div>
+        </motion.div>
+      ) : (
+        // 신청 폼 입력 본체 화면
+        <>
+          {/* 스텝 가이드 탑재 */}
+          <StepIndicator currentStep={step} totalSteps={3} />
+
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(onSubmit)} noValidate>
+              
+              <div style={{ minHeight: '320px', marginBottom: '32px' }}>
+                {step === 1 && <Step1CourseSelect />}
+                {step === 2 && <Step2StudentInfo />}
+                {step === 3 && <Step3Confirm setStep={setStep} />}
+              </div>
+
+              {/* API 에러 발생 시 경고 상자 노출 */}
+              <AnimatePresence>
+                {submitError && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="error-banner"
+                  >
+                    <AlertTriangle size={18} />
+                    <span>{submitError}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* 하단 네비게이션 버튼 바 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={prevStep}
+                  disabled={step === 1 || isSubmitting}
+                >
+                  이전 단계
+                </button>
+
+                {step < 3 ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleNextStep}
+                  >
+                    다음 단계
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={isSubmitting}
+                    style={{ 
+                      background: 'var(--success)', 
+                      boxShadow: '0 4px 14px 0 rgba(34, 197, 94, 0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <RefreshCw size={16} className="spin-icon" />
+                        <span>신청서 전송 중...</span>
+                      </>
+                    ) : (
+                      <span>신청서 제출</span>
+                    )}
+                  </button>
+                )}
+              </div>
+              
+            </form>
+          </FormProvider>
+        </>
+      )}
     </main>
   );
 }
