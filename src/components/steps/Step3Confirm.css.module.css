@@ -1,0 +1,301 @@
+.container {
+  width: 100%;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  margin-bottom: 2rem;
+}
+
+/* 요약 카드 공통 스타일 */
+.summaryCard {
+  background: var(--bg-card, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.cardHeader h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* 우측 수정 버튼 링크 */
+.editBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  color: var(--color-primary-light, var(--color-primary));
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.editBtn:hover {
+  background: rgba(99, 102, 241, 0.08);
+  transform: translateY(-1px);
+}
+
+/* 요약 디테일 목록 */
+.courseDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  padding-bottom: 0.6rem;
+}
+
+.detailRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.detailLabel {
+  color: var(--color-muted);
+  font-weight: 500;
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.detailValue {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-all;
+}
+
+.coursePriceVal {
+  color: var(--color-primary-light, var(--color-primary));
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.noDataText {
+  font-size: 0.85rem;
+  color: var(--color-error);
+  text-align: center;
+  padding: 1rem 0;
+}
+
+/* 구분 배지 */
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.badgePersonal {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary-light, var(--color-primary));
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.badgeGroup {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* 참가자 테이블 */
+.participantsListWrapper {
+  margin-top: 1.25rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 1.25rem;
+}
+
+.participantListTitle {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.participantsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.participantsTable th, .participantsTable td {
+  padding: 0.65rem 0.85rem;
+}
+
+.participantsTable th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.participantsTable td {
+  background: rgba(255, 255, 255, 0.01);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.participantsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.emptyText {
+  color: var(--color-error);
+  font-style: italic;
+  font-size: 0.75rem;
+}
+
+/* 이용약관 영역 */
+.termsSection {
+  margin-top: 2rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1.5rem;
+}
+
+.termsWrapper {
+  margin-bottom: 1.25rem;
+}
+
+.checkboxContainer {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  user-select: none;
+}
+
+.checkbox {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.customCheckbox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+  background: var(--bg-input, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-right: 10px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.2s ease;
+}
+
+.checkboxChecked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+}
+
+.checkIcon {
+  color: #ffffff;
+}
+
+.checkboxLabel {
+  color: var(--color-text-secondary);
+}
+
+.required {
+  color: var(--color-error);
+  margin-left: 2px;
+}
+
+/* 안내사항 박스 */
+.noticeBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+}
+
+.noticeBox svg {
+  color: var(--color-primary-light, var(--color-primary));
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.errorMessage {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-error);
+  font-weight: 500;
+}
+
+@media (max-width: 500px) {
+  .detailRow {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .detailLabel {
+    width: 100%;
+  }
+
+  .detailValue {
+    text-align: left;
+  }
+}
