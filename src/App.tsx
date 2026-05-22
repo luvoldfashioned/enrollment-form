@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
+import type { Path, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { enrollmentFormSchema } from './types/form';
-import type { EnrollmentFormData } from './types/form';
+import type { EnrollmentFormInput } from './types/form';
 import { StepIndicator } from './components/StepIndicator';
 import { Step1CourseSelect } from './components/steps/Step1CourseSelect';
 import { Step2StudentInfo } from './components/steps/Step2StudentInfo';
@@ -34,9 +35,9 @@ function App() {
   const [submitResult, setSubmitResult] = useState<SubmitSuccessResult | null>(null);
   const hasInitiatedDraft = useRef(false);
 
-  // 1) 폼 컨트롤러 및 초기값 선언 (Zod 판별 유니온과 리졸버 타입 정렬을 위해 EnrollmentFormData 바인딩)
-  const methods = useForm<EnrollmentFormData>({
-    resolver: zodResolver(enrollmentFormSchema),
+  // 1) 폼 컨트롤러 및 초기값 선언 (하위 컴포넌트와의 타입 일관성을 위해 EnrollmentFormInput 바인딩)
+  const methods = useForm<EnrollmentFormInput>({
+    resolver: zodResolver(enrollmentFormSchema) as unknown as Resolver<EnrollmentFormInput>,
     mode: 'onChange',
     defaultValues: {
       courseId: '',
@@ -46,7 +47,7 @@ function App() {
       phone: '',
       motivation: '',
       agreedToTerms: false
-    } as any
+    }
   });
 
   const { trigger, getValues, handleSubmit, reset, watch, formState: { isDirty } } = methods;
@@ -176,7 +177,7 @@ function App() {
       }
     } else if (step === 2) {
       // 2단계: 공통 인적 사항 검사 대상 설정
-      const fieldsToValidate: any[] = ['name', 'email', 'phone', 'motivation'];
+      const fieldsToValidate: Path<EnrollmentFormInput>[] = ['name', 'email', 'phone', 'motivation'];
 
       // 단체 신청일 경우에는 단체 추가 필드들 및 동적 참가자 명단까지 전부 검사
       const type = getValues('enrollmentType');
@@ -191,8 +192,8 @@ function App() {
         const participants = getValues('group.participants') || [];
         participants.forEach((_, idx) => {
           fieldsToValidate.push(
-            `group.participants.${idx}.name`,
-            `group.participants.${idx}.email`
+            `group.participants.${idx}.name` as Path<EnrollmentFormInput>,
+            `group.participants.${idx}.email` as Path<EnrollmentFormInput>
           );
         });
       }
@@ -209,28 +210,31 @@ function App() {
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
   // 3) 최종 3단계 확인 후 폼 제출 (유니온 타입에 기반하여 런타임과 빌드 무결성 유지)
-  const onSubmit = async (data: EnrollmentFormData) => {
+  const onSubmit = async (data: EnrollmentFormInput) => {
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
+      // 1단계: Zod discriminatedUnion 스키마를 사용하여 데이터 형태를 안전하게 좁히고 타입 검증(런타임 무결성 보장)
+      const validatedData = enrollmentFormSchema.parse(data);
+
       // API 스펙(handlers.ts)에 맞춰 데이터 형태 가공 (applicant 오브젝트 구조 맵핑)
       const apiPayload = {
-        courseId: data.courseId,
-        type: data.enrollmentType,
+        courseId: validatedData.courseId,
+        type: validatedData.enrollmentType,
         applicant: {
-          name: data.name,
-          email: data.email,
-          phone: data.phone
+          name: validatedData.name,
+          email: validatedData.email,
+          phone: validatedData.phone
         },
-        motivation: data.motivation,
-        agreedToTerms: data.agreedToTerms,
-        group: data.enrollmentType === 'group' ? {
-          organizationName: data.group.organizationName, // discriminatedUnion으로 인해 '?' 옵셔널 제거 가능!
-          contactPerson: data.group.contactPerson,
-          contactPhone: data.group.contactPhone,
-          headCount: data.group.headCount,
-          participants: data.group.participants
+        motivation: validatedData.motivation,
+        agreedToTerms: validatedData.agreedToTerms,
+        group: validatedData.enrollmentType === 'group' ? {
+          organizationName: validatedData.group.organizationName, // discriminatedUnion으로 인해 '?' 옵셔널 제거 가능!
+          contactPerson: validatedData.group.contactPerson,
+          contactPhone: validatedData.group.contactPhone,
+          headCount: validatedData.group.headCount,
+          participants: validatedData.group.participants
         } : undefined
       };
 
@@ -270,7 +274,7 @@ function App() {
       phone: '',
       motivation: '',
       agreedToTerms: false
-    } as any);
+    });
     setSubmitResult(null);
     setSubmitError(null);
     setStep(1);
