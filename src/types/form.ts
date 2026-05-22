@@ -67,7 +67,7 @@ export const groupEnrollmentSchema = baseEnrollmentSchema.extend({
     ),
   }),
 }).superRefine((data, ctx) => {
-  // 신청 인원 수와 실제 참가자 리스트의 수량이 일치하는지 추가 횡단 검증
+  // 1) 신청 인원 수와 실제 참가자 리스트의 수량이 일치하는지 횡단 검증
   const headCount = data.group.headCount;
   const participants = data.group.participants || [];
   
@@ -78,6 +78,22 @@ export const groupEnrollmentSchema = baseEnrollmentSchema.extend({
       message: `신청 인원(${headCount}명)과 입력된 참가자 수(${participants.length}명)가 일치해야 합니다.`,
     });
   }
+
+  // 2) 참가자 명단 내 이메일 중복 검사
+  const emailSet = new Set<string>();
+  participants.forEach((p, index) => {
+    if (p.email && p.email.trim() !== '') {
+      if (emailSet.has(p.email)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['group', 'participants', index, 'email'],
+          message: '명단 내에 중복된 이메일이 존재합니다.',
+        });
+      } else {
+        emailSet.add(p.email);
+      }
+    }
+  });
 });
 
 // C. 최종 수강 신청 통합 판별 유니온 스키마
