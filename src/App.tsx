@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import type { Path, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -153,8 +153,12 @@ function App() {
       setSubmitResult(resultData);
       localStorage.removeItem('enrollment_form_draft');
       localStorage.removeItem('enrollment_form_draft_step');
-    } catch (err: any) {
-      setSubmitError(err.message || '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -37,6 +37,9 @@ export const Step3Confirm: React.FC<Step3ConfirmProps> = ({ setStep }) => {
     queryKey: ['courses', 'all'],
     queryFn: async () => {
       const response = await fetch('/api/courses');
+      if (!response.ok) {
+        throw new Error('강좌 정보를 불러오는 중 에러가 발생했습니다.');
+      }
       return response.json();
     },
     enabled: !!courseId // courseId가 있을 때만 쿼리 작동

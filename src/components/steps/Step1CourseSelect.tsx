@@ -80,20 +80,23 @@ export const Step1CourseSelect: React.FC = () => {
   // 3) 카테고리 탭 상태 필터 ('all' | 'development' | 'design' | 'marketing' | 'business')
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  // 4) TanStack Query를 사용하여 강좌 목록을 비동기 패칭합니다.
-  const { data, isLoading, isError } = useQuery<CourseListResponse>({
-    queryKey: ['courses', activeCategory],
+  // 4) TanStack Query를 사용하여 강좌 목록을 비동기 패칭합니다 (전체 조회 후 클라이언트 사이드 필터링)
+  const { data: rawData, isLoading, isError } = useQuery<CourseListResponse>({
+    queryKey: ['courses', 'all'],
     queryFn: async () => {
-      const url = activeCategory === 'all' 
-        ? '/api/courses' 
-        : `/api/courses?category=${activeCategory}`;
-      const response = await fetch(url);
+      const response = await fetch('/api/courses');
       if (!response.ok) {
         throw new Error('강좌 정보를 불러오는 중 에러가 발생했습니다.');
       }
       return response.json();
     }
   });
+
+  // 카테고리별 강의 필터링
+  const filteredCourses = rawData?.courses.filter((course) => {
+    if (activeCategory === 'all') return true;
+    return course.category === activeCategory;
+  }) || [];
 
   // 카테고리 한글 매핑 헬퍼
   const getCategoryLabel = (category: string) => {
@@ -156,9 +159,9 @@ export const Step1CourseSelect: React.FC = () => {
           </div>
         )}
 
-        {!isLoading && !isError && data && (
+        {!isLoading && !isError && rawData && (
           <div className={styles.courseGrid}>
-            {data.courses.map((course: Course) => {
+            {filteredCourses.map((course: Course) => {
               const isFull = course.currentEnrollment >= course.maxCapacity;
               const isSelected = selectedCourseId === course.id;
 

@@ -24,9 +24,7 @@ export function useFocusOnError(errors: FieldErrors<EnrollmentFormInput>) {
 
         for (const key of Object.keys(obj)) {
           // 배열 index(숫자)와 일반 키를 안전하게 name 경로로 병합
-          const currentPath = path 
-            ? (isNaN(Number(key)) ? `${path}.${key}` : `${path}.${key}`) 
-            : key;
+          const currentPath = path ? `${path}.${key}` : key;
           const result = getFirstErrorKey(obj[key], currentPath);
           if (result) return result;
         }
