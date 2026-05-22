@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, Users, FileText, PhoneCall } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import type { CourseListResponse, Course } from '../../mocks/handlers';
 import type { EnrollmentFormInput } from '../../types/form';
 import styles from './Step2StudentInfo.css.module.css';
 
@@ -26,9 +28,23 @@ export const Step2StudentInfo: React.FC = () => {
     formState: { errors }
   } = useFormContext<EnrollmentFormInput>();
 
-  // 2) 1단계에서 선택했던 '신청 유형'과 '신청 인원수'를 실시간 감시합니다.
+  // 2) 1단계에서 선택했던 '신청 유형'과 '신청 인원수', '강의 ID'를 실시간 감시합니다.
   const enrollmentType = watch('enrollmentType');
   const headCount = watch('group.headCount');
+  const courseId = watch('courseId');
+
+  // 선택된 강의 정보 조회를 위한 캐싱된 쿼리 호출 (Step 1, 3과 동일한 queryKey 사용)
+  const { data: coursesData } = useQuery<CourseListResponse>({
+    queryKey: ['courses', 'all'],
+    queryFn: async () => {
+      const response = await fetch('/api/courses');
+      if (!response.ok) throw new Error('Network error');
+      return response.json();
+    },
+    enabled: !!courseId,
+  });
+
+  const selectedCourse = coursesData?.courses.find((c: Course) => c.id === courseId);
 
   // RHF register 반환값 저장 (커스텀 onChange와 겹침 해결)
   const headCountRegister = register('group.headCount', { valueAsNumber: true });
@@ -68,6 +84,21 @@ export const Step2StudentInfo: React.FC = () => {
     <div className={styles.container}>
       <h2 className={styles.title}>수강생 정보 입력</h2>
       <p className={styles.subtitle}>수강 신청서 접수를 위해 아래 필수 및 선택 정보를 기입해 주세요.</p>
+
+      {/* 1단계에서 선택한 강의 요약 배너 */}
+      {selectedCourse && (
+        <div style={{ marginBottom: '24px', padding: '12px 16px', backgroundColor: 'var(--surface-light)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid var(--border)' }}>
+          <div style={{ padding: '6px 10px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+            선택된 강의
+          </div>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>{selectedCourse.title}</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              강사: {selectedCourse.instructor} | 모집 정원: {selectedCourse.maxCapacity}명
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ==========================================
           ① 수강생 공통 정보 필드 (이름, 이메일, 연락처)
