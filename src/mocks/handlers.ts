@@ -114,10 +114,11 @@ const mockCourses: Course[] = [
   },
 ];
 
-// 중복 가입 에러(DUPLICATE_ENROLLMENT) 테스트를 위해 임시로 등록된 사용자 리스트 (인메모리)
-const registeredEmails: Set<string> = new Set([
-  'duplicate@liveklass.com', // 이 이메일로 신청을 테스트하면 항상 중복 에러가 뜸
-]);
+// 중복 가입 에러(DUPLICATE_ENROLLMENT)를 강의(courseId)별로 관리하기 위한 인메모리 맵
+const enrolledEmailsByCourse: Record<string, Set<string>> = {
+  // 특정 강의에 대해 이 이메일로 테스트 시 중복 에러 발생
+  'course-dev-01': new Set(['duplicate@liveklass.com']),
+};
 
 export const handlers = [
   // 1. 강의 목록 조회 API
@@ -232,10 +233,11 @@ export const handlers = [
       }
 
       // 3) 중복 신청 여부 체크 (DUPLICATE_ENROLLMENT)
-      if (registeredEmails.has(body.applicant.email)) {
+      const enrolledEmails = enrolledEmailsByCourse[body.courseId] || new Set();
+      if (enrolledEmails.has(body.applicant.email)) {
         const errorResponse: ErrorResponse = {
           code: 'DUPLICATE_ENROLLMENT',
-          message: '이미 수강 신청이 완료된 강의입니다. 한 ID당 1회만 신청할 수 있습니다.',
+          message: '이 강의에 동일한 이메일 주소로 신청된 내역이 이미 존재합니다.',
         };
         return HttpResponse.json(errorResponse, { status: 409 });
       }
@@ -252,7 +254,10 @@ export const handlers = [
 
       // 5) 성공 응답 처리 (인메모리 인원 수 가산 및 중복 검증용 이메일 등록)
       selectedCourse.currentEnrollment += requestedSpots;
-      registeredEmails.add(body.applicant.email);
+      if (!enrolledEmailsByCourse[body.courseId]) {
+        enrolledEmailsByCourse[body.courseId] = new Set();
+      }
+      enrolledEmailsByCourse[body.courseId].add(body.applicant.email);
 
       // 서버 처리 중 딜레이 시뮬레이션
       await new Promise((resolve) => setTimeout(resolve, 1500));
