@@ -22,12 +22,16 @@ export const Step2StudentInfo: React.FC = () => {
     control,
     watch,
     setValue,
+    getValues,
     formState: { errors }
   } = useFormContext<EnrollmentFormInput>();
 
   // 2) 1단계에서 선택했던 '신청 유형'과 '신청 인원수'를 실시간 감시합니다.
   const enrollmentType = watch('enrollmentType');
   const headCount = watch('group.headCount');
+
+  // RHF register 반환값 저장 (커스텀 onChange와 겹침 해결)
+  const headCountRegister = register('group.headCount', { valueAsNumber: true });
 
   // 3) useFieldArray를 통해 동적으로 개수가 변하는 참가자 명단(이름 + 이메일) 필드를 바인딩합니다.
   const { fields, append, remove } = useFieldArray({
@@ -36,10 +40,12 @@ export const Step2StudentInfo: React.FC = () => {
   });
 
   // 4) [동적 명단 동기화] 신청 인원수가 바뀔 때마다 아래 명단 필드의 개수를 자동으로 맞추어 줍니다. (2명 ~ 10명 제한)
+  // fields.length 대신 getValues를 통해 무한 리렌더링 및 의존성 순환 루프 제거
   useEffect(() => {
     if (enrollmentType === 'group') {
       const count = Number(headCount) || 0;
-      const currentLength = fields.length;
+      const currentParticipants = getValues('group.participants') || [];
+      const currentLength = currentParticipants.length;
 
       // 2~10명 사이인 경우에만 동기화 처리 진행
       if (count >= 2 && count <= 10) {
@@ -56,7 +62,7 @@ export const Step2StudentInfo: React.FC = () => {
         }
       }
     }
-  }, [headCount, enrollmentType, append, remove, fields.length]);
+  }, [headCount, enrollmentType, append, remove, getValues]);
 
   return (
     <div className={styles.container}>
@@ -239,8 +245,11 @@ export const Step2StudentInfo: React.FC = () => {
                     className={`${styles.input} ${styles.headCountInput} ${
                       errors.group?.headCount ? styles.inputError : ''
                     }`}
-                    {...register('group.headCount', { valueAsNumber: true })}
-                    onChange={(e) => {
+                    {...headCountRegister}
+                    onChange={async (e) => {
+                      // 1) RHF의 기본 onChange 동작 실행 (타입 캐스팅 및 상태 갱신 보장)
+                      await headCountRegister.onChange(e);
+                      // 2) 커스텀 onChange 로직 실행 (인원 변경 즉시 유효성 재검증 수행)
                       const val = Number(e.target.value);
                       setValue('group.headCount', val, { shouldValidate: true });
                     }}
