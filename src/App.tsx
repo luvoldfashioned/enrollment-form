@@ -33,7 +33,7 @@ function App() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitSuccessResult | null>(null);
 
-  // 1) 폼 컨트롤러 및 초기값 선언
+  // 1) 폼 컨트롤러 및 초기값 선언 (Zod 판별 유니온과 리졸버 타입 정렬을 위해 EnrollmentFormData 바인딩)
   const methods = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentFormSchema),
     mode: 'onChange',
@@ -45,7 +45,7 @@ function App() {
       phone: '',
       motivation: '',
       agreedToTerms: false
-    }
+    } as any
   });
 
   const { trigger, getValues, handleSubmit, reset } = methods;
@@ -134,32 +134,32 @@ function App() {
 
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
-  // 3) 최종 3단계 확인 후 폼 제출
+  // 3) 최종 3단계 확인 후 폼 제출 (유니온 타입에 기반하여 런타임과 빌드 무결성 유지)
   const onSubmit = async (data: EnrollmentFormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    // API 스펙(handlers.ts)에 맞춰 데이터 형태 가공 (applicant 오브젝트 구조 맵핑)
-    const apiPayload = {
-      courseId: data.courseId,
-      type: data.enrollmentType,
-      applicant: {
-        name: data.name,
-        email: data.email,
-        phone: data.phone
-      },
-      motivation: data.motivation,
-      agreedToTerms: data.agreedToTerms,
-      group: data.enrollmentType === 'group' ? {
-        organizationName: data.group?.organizationName,
-        contactPerson: data.group?.contactPerson,
-        contactPhone: data.group?.contactPhone,
-        headCount: Number(data.group?.headCount) || 2,
-        participants: data.group?.participants
-      } : undefined
-    };
-
     try {
+      // API 스펙(handlers.ts)에 맞춰 데이터 형태 가공 (applicant 오브젝트 구조 맵핑)
+      const apiPayload = {
+        courseId: data.courseId,
+        type: data.enrollmentType,
+        applicant: {
+          name: data.name,
+          email: data.email,
+          phone: data.phone
+        },
+        motivation: data.motivation,
+        agreedToTerms: data.agreedToTerms,
+        group: data.enrollmentType === 'group' ? {
+          organizationName: data.group.organizationName, // discriminatedUnion으로 인해 '?' 옵셔널 제거 가능!
+          contactPerson: data.group.contactPerson,
+          contactPhone: data.group.contactPhone,
+          headCount: data.group.headCount,
+          participants: data.group.participants
+        } : undefined
+      };
+
       const response = await fetch('/api/enrollments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

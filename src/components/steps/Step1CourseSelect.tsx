@@ -3,7 +3,7 @@ import { useFormContext } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, User, Users, CheckCircle2, AlertCircle } from 'lucide-react';
-import type { EnrollmentFormData } from '../../types/form';
+import type { EnrollmentFormInput } from '../../types/form';
 import type { Course, CourseListResponse } from '../../mocks/handlers';
 import styles from './Step1CourseSelect.css.module.css'; // CSS 모듈 사용
 
@@ -23,7 +23,7 @@ export const Step1CourseSelect: React.FC = () => {
     setValue,
     getValues, // getValues를 가져와 작성중인 폼 값을 체크
     formState: { errors }
-  } = useFormContext<EnrollmentFormData>();
+  } = useFormContext<EnrollmentFormInput>();
 
   // 2) 폼의 상태 중 '선택된 강의 ID'와 '신청 유형'을 실시간 감시(Watch)합니다.
   const selectedCourseId = watch('courseId');

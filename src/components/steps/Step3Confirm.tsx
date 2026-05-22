@@ -3,7 +3,7 @@ import { useFormContext } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Edit2, ShieldAlert, CheckCircle, Info } from 'lucide-react';
-import type { EnrollmentFormData } from '../../types/form';
+import type { EnrollmentFormInput } from '../../types/form';
 import type { CourseListResponse, Course } from '../../mocks/handlers';
 import styles from './Step3Confirm.css.module.css';
 
@@ -26,7 +26,7 @@ export const Step3Confirm: React.FC<Step3ConfirmProps> = ({ setStep }) => {
     register,
     watch,
     formState: { errors }
-  } = useFormContext<EnrollmentFormData>();
+  } = useFormContext<EnrollmentFormInput>();
 
   // 2) 요약을 위해 현재 입력된 데이터들을 관찰(Watch)합니다.
   const formData = watch();

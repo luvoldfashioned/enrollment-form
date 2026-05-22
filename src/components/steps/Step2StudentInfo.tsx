@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, Users, FileText, PhoneCall } from 'lucide-react';
-import type { EnrollmentFormData } from '../../types/form';
+import type { EnrollmentFormInput } from '../../types/form';
 import styles from './Step2StudentInfo.css.module.css';
 
 /**
@@ -23,7 +23,7 @@ export const Step2StudentInfo: React.FC = () => {
     watch,
     setValue,
     formState: { errors }
-  } = useFormContext<EnrollmentFormData>();
+  } = useFormContext<EnrollmentFormInput>();
 
   // 2) 1단계에서 선택했던 '신청 유형'과 '신청 인원수'를 실시간 감시합니다.
   const enrollmentType = watch('enrollmentType');
