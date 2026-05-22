@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,7 +48,7 @@ function App() {
     } as any
   });
 
-  const { trigger, getValues, handleSubmit, reset } = methods;
+  const { trigger, getValues, handleSubmit, reset, formState: { isDirty } } = methods;
 
   // 유효성 에러 필드로 오토포커스 및 스무스 스크롤링 이동 처리 함수 (높은 숙련도 요구사항)
   const focusAndScrollToError = () => {
@@ -89,6 +89,22 @@ function App() {
       }
     }, 0);
   };
+
+  // 페이지 이탈 방지 (beforeunload) 처리 (가산점 고도화 1단계)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // 폼이 변경되었고(isDirty), 아직 신청 완료 상태가 아닐 때만 이탈 방지 작동
+      if (isDirty && !submitResult) {
+        e.preventDefault();
+        e.returnValue = ''; // 표준 브라우저 이탈 방지 메시지 트리거
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty, submitResult]);
 
   // 2) 단계별 다음 버튼 클릭 시 유효성 검사 수행
   const handleNextStep = async () => {
