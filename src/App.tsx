@@ -3,7 +3,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import type { Path, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, RefreshCw, X } from 'lucide-react';
 import { enrollmentFormSchema } from './types/form';
 import type { EnrollmentFormInput } from './types/form';
 import { StepIndicator } from './components/StepIndicator';
@@ -105,7 +105,10 @@ function App() {
     }
   };
 
-  const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+  const prevStep = () => {
+    setSubmitError(null);
+    setStep((prev) => Math.max(prev - 1, 1));
+  };
 
   // 3) 최종 3단계 확인 후 폼 제출 (유니온 타입에 기반하여 런타임과 빌드 무결성 유지)
   const onSubmit = async (data: EnrollmentFormInput) => {
@@ -255,9 +258,18 @@ function App() {
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     className="error-banner"
+                    style={{ position: 'relative' }}
                   >
                     <AlertTriangle size={18} />
                     <span>{submitError}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setSubmitError(null)} 
+                      style={{ position: 'absolute', right: '12px', top: '12px', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}
+                      aria-label="에러 메시지 닫기"
+                    >
+                      <X size={16} />
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
