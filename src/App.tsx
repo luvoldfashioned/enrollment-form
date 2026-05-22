@@ -11,6 +11,8 @@ import { Step1CourseSelect } from './components/steps/Step1CourseSelect';
 import { Step2StudentInfo } from './components/steps/Step2StudentInfo';
 import { Step3Confirm } from './components/steps/Step3Confirm';
 import { useFormDraftPersistence } from './hooks/useFormDraftPersistence';
+import { usePreventLeave } from './hooks/usePreventLeave';
+import { useFocusOnError } from './hooks/useFocusOnError';
 
 interface SubmitSuccessResult {
   enrollmentId: string;
@@ -50,63 +52,13 @@ function App() {
     }
   });
 
-  const { trigger, getValues, handleSubmit, reset, formState: { isDirty } } = methods;
+  const { trigger, getValues, handleSubmit, reset, formState: { isDirty, errors } } = methods;
 
-  // 유효성 에러 필드로 오토포커스 및 스무스 스크롤링 이동 처리 함수 (높은 숙련도 요구사항)
-  const focusAndScrollToError = () => {
-    setTimeout(() => {
-      const { errors } = methods.formState;
-      
-      // 중첩된 에러 객체에서 첫 번째 에러가 발생한 필드 경로 수집
-      const getFirstErrorKey = (obj: any, path = ''): string | null => {
-        if (!obj) return null;
-        if (obj.message) return path;
-        
-        for (const key of Object.keys(obj)) {
-          // 배열 index(숫자)와 일반 키를 안전하게 name 경로로 병합
-          const currentPath = path 
-            ? (isNaN(Number(key)) ? `${path}.${key}` : `${path}.${key}`) 
-            : key;
-          const result = getFirstErrorKey(obj[key], currentPath);
-          if (result) return result;
-        }
-        return null;
-      };
+  // 에러 발생 필드로 포커스 및 스크롤 이동 훅 사용
+  const focusAndScrollToError = useFocusOnError(errors);
 
-      const firstErrorPath = getFirstErrorKey(errors);
-      if (!firstErrorPath) return;
-
-      // react-hook-form의 name 매핑 요소 쿼리
-      const errorElement = document.querySelector(`[name="${firstErrorPath}"]`) as HTMLElement;
-      
-      if (errorElement) {
-        errorElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
-        
-        setTimeout(() => {
-          errorElement.focus();
-        }, 300); // 스크롤 마친 후 포커스 진입
-      }
-    }, 0);
-  };
-
-  // 페이지 이탈 방지 (beforeunload) 처리 (가산점 고도화 1단계)
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // 폼이 변경되었고(isDirty), 아직 신청 완료 상태가 아닐 때만 이탈 방지 작동
-      if (isDirty && !submitResult) {
-        e.preventDefault();
-        e.returnValue = ''; // 표준 브라우저 이탈 방지 메시지 트리거
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [isDirty, submitResult]);
+  // 페이지 이탈 방지 훅 사용
+  usePreventLeave(isDirty, !!submitResult);
 
   // 로컬스토리지 임시 저장/복구 (Auto-save) 커스텀 훅 적용
   useFormDraftPersistence(methods, step, setStep, submitResult);
