@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,6 +32,7 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitSuccessResult | null>(null);
+  const hasInitiatedDraft = useRef(false);
 
   // 1) 폼 컨트롤러 및 초기값 선언 (Zod 판별 유니온과 리졸버 타입 정렬을 위해 EnrollmentFormData 바인딩)
   const methods = useForm<EnrollmentFormData>({
@@ -48,7 +49,7 @@ function App() {
     } as any
   });
 
-  const { trigger, getValues, handleSubmit, reset, formState: { isDirty } } = methods;
+  const { trigger, getValues, handleSubmit, reset, watch, formState: { isDirty } } = methods;
 
   // 유효성 에러 필드로 오토포커스 및 스무스 스크롤링 이동 처리 함수 (높은 숙련도 요구사항)
   const focusAndScrollToError = () => {
@@ -105,6 +106,63 @@ function App() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [isDirty, submitResult]);
+
+  // 1) 최초 진입 시 로컬스토리지에 보관된 초안 확인 및 복구 (가산점 고도화 2단계)
+  useEffect(() => {
+    if (hasInitiatedDraft.current) return;
+    hasInitiatedDraft.current = true;
+
+    const savedDraft = localStorage.getItem('enrollment_form_draft');
+    const savedStep = localStorage.getItem('enrollment_form_draft_step');
+
+    if (savedDraft) {
+      try {
+        const parsedDraft = JSON.parse(savedDraft);
+        const confirmRestore = window.confirm(
+          '이전에 작성하던 임시 수강 신청서가 있습니다.\n데이터를 복구하여 계속 작성하시겠습니까?'
+        );
+
+        if (confirmRestore) {
+          reset(parsedDraft);
+          if (savedStep) {
+            setStep(Number(savedStep));
+          }
+        } else {
+          localStorage.removeItem('enrollment_form_draft');
+          localStorage.removeItem('enrollment_form_draft_step');
+        }
+      } catch (error) {
+        console.error('임시 저장 데이터 복구 실패:', error);
+        localStorage.removeItem('enrollment_form_draft');
+        localStorage.removeItem('enrollment_form_draft_step');
+      }
+    }
+  }, [reset]);
+
+  // 폼의 현재 실시간 입력 값 관찰 (Auto-save 대상)
+  const currentFormValues = watch();
+
+  // 2) 폼의 상태 변화 감지하여 로컬스토리지에 디바운스 자동 저장 (300ms) (가산점 고도화 2단계)
+  useEffect(() => {
+    if (submitResult) return;
+
+    // 무의미한 빈 상태 저장 방지
+    const hasAnyContent = 
+      currentFormValues.courseId || 
+      currentFormValues.name || 
+      currentFormValues.email || 
+      currentFormValues.phone || 
+      currentFormValues.motivation;
+      
+    if (!hasAnyContent) return;
+
+    const saveTimer = setTimeout(() => {
+      localStorage.setItem('enrollment_form_draft', JSON.stringify(currentFormValues));
+      localStorage.setItem('enrollment_form_draft_step', String(step));
+    }, 300);
+
+    return () => clearTimeout(saveTimer);
+  }, [currentFormValues, step, submitResult]);
 
   // 2) 단계별 다음 버튼 클릭 시 유효성 검사 수행
   const handleNextStep = async () => {
@@ -191,6 +249,8 @@ function App() {
 
       // 신청 성공 상태 기록
       setSubmitResult(resultData);
+      localStorage.removeItem('enrollment_form_draft');
+      localStorage.removeItem('enrollment_form_draft_step');
     } catch (err: any) {
       setSubmitError(err.message || '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
@@ -200,6 +260,8 @@ function App() {
 
   // 신청 완료 화면에서 새로 작성하기(초기화) 버튼 처리
   const handleRestart = () => {
+    localStorage.removeItem('enrollment_form_draft');
+    localStorage.removeItem('enrollment_form_draft_step');
     reset({
       courseId: '',
       enrollmentType: 'personal',
@@ -208,7 +270,7 @@ function App() {
       phone: '',
       motivation: '',
       agreedToTerms: false
-    });
+    } as any);
     setSubmitResult(null);
     setSubmitError(null);
     setStep(1);
