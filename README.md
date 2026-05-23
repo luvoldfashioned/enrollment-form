@@ -3,6 +3,7 @@
 React와 TypeScript를 기반으로 구축한 다단계 폼 프론트엔드 프로젝트입니다.
 개인 및 단체 수강 신청에 필요한 3단계 폼을 구현했으며, 상태 관리 최적화와 유효성 검사 등 UX 개선에 집중했습니다.
 
+
 ## 프로젝트 개요
 
 수강 신청 절차를 직관적인 스텝 인디케이터가 포함된 3단계 멀티스텝 형태로 제공하며, 조건부 유효성 검증 및 다양한 UX 개선 기능(임시 저장, 이탈 방지 등)을 구현한 프로젝트입니다.
@@ -49,3 +50,11 @@ npm run dev
 본 프로젝트는 Antigravity 2.0 환경(Gemini 3.5 Flash, Gemini 3.1 Pro, Claude Opus 4.6)에서 AI 코딩 어시스턴트를 활용하여 진행되었습니다.
 - 초기 뼈대 구축 및 구현: 개발 기한 내에 완성도를 높이기 위해, 프로젝트의 보일러플레이트 세팅과 주요 기능 구현 코드의 상당 부분을 AI 모델을 활용해 작성했습니다.
 - 학습과 문서화를 통한 코드 내재화: 제가 직접 작성하지 않은 코드를 제출하는 것에 그치지 않고, 낯선 상태 관리 로직(React Hook Form, Zod 판별 유니온 등)이 작동하는 원리를 완벽히 이해하기 위해 AI와 심층적인 질의응답을 진행했습니다. 이 과정에서 얻은 답변과 아키텍처 고민들을 정리하여 저만의 '기술 가이드 문서'로 남기며 코드를 학습하고 이해하는 데 집중했습니다.
+
+---
+## 화면 예시
+<img width="550" height="305" alt="image" src="https://github.com/user-attachments/assets/2abe0534-f0d3-4411-9fc6-57410b2af8e2" />
+<img width="550" height="319" alt="image" src="https://github.com/user-attachments/assets/1ca6e9c3-1b58-4247-b760-74575968a8fa" />
+<img width="550" height="415" alt="image" src="https://github.com/user-attachments/assets/9260b260-a272-4725-bc37-cf8f606cc55a" />
+<img width="300" height="111" alt="image" src="https://github.com/user-attachments/assets/602908d1-301c-4692-8c5f-a175fcff4626" />
+
